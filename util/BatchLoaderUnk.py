@@ -54,7 +54,7 @@ class BatchLoaderUnk:
             all_data.append(np.load("{}_{}.npy".format(tensor_file, split)))  # train, valid, test tensors
             all_data_char.append(np.load("{}_{}.npy".format(char_file, split)))  # train, valid, test character indices
             all_spk.append(np.load("{}_{}.npy".format(spk_file, split)))  # train, valid, test spk indices
-            all_prb.append(np.load("{}_{}.npy".format(prb_file, split)))  # train, valid, test acoustic vectors
+            all_prb.append(np.nan_to_num(np.load("{}_{}.npy".format(prb_file, split))))  # train, valid, test acoustic vectors
         vocab_mapping = np.load(vocab_file)
         self.idx2word, self.word2idx, self.idx2char, self.char2idx = vocab_unpack(vocab_mapping)
         self.vocab_size = len(self.idx2word)
