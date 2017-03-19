@@ -119,10 +119,11 @@ def LSTMCNN(opt):
     for l in range(opt.highway_layers):
         x = TimeDistributed(Highway(activation='relu'))(x)
 
-    spk = Input(batch_shape=(opt.batch_size, opt.seq_length), name='spk')
-    inputs.append(spk)
-    spk = Reshape((opt.seq_length, 1))(spk)
-    x = Merge(mode='concat')([x, spk])
+    if opt.use_spk:
+        spk = Input(batch_shape=(opt.batch_size, opt.seq_length), name='spk')
+        inputs.append(spk)
+        spk = Reshape((opt.seq_length, 1))(spk)
+        x = Merge(mode='concat')([x, spk])
 
 #    if opt.use_prb and l == opt.num_layers-1:
     if opt.use_prb:

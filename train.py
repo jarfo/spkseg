@@ -57,6 +57,7 @@ if __name__=="__main__":
     parser.add_argument('--num_layers', type=int, default=2, help='number of layers in the LSTM')
     parser.add_argument('--dropout', type=float, default=0.5, help='dropout. 0 = no dropout')
     parser.add_argument('--delay', type=int, default=1, help='output delay')
+    parser.add_argument('--use_spk', type=int, default=0, help='use previous output')
     parser.add_argument('--use_prb', type=int, default=1, help='use acoustic information')
     parser.add_argument('--vector_size', type=int, default=20, help='acoustic information size')
     # optimization

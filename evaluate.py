@@ -22,9 +22,9 @@ class Vocabulary:
         print('Word vocab size: %d, Char vocab size: %d' % (len(self.idx2word), len(self.idx2char)))
         self.word_vocab_size = len(self.idx2word)
         self.char_vocab_size = len(self.idx2char)
-        
+
     def index(self, word):
-        w = self.word2idx[word] if word in self.word2idx else self.word2idx[self.tokens.UNK]    
+        w = self.word2idx[word] if word in self.word2idx else self.word2idx[self.tokens.UNK]
         c = np.zeros(self.max_word_l, dtype='int32')
         chars = [self.char2idx[self.tokens.START]] # start-of-word symbol
         chars += [self.char2idx[char] for char in word if char in self.char2idx]
@@ -34,8 +34,9 @@ class Vocabulary:
             c = chars[:self.max_word_l]
         else:
             c[:len(chars)] = chars
-            
+
         return w, c
+
 
     def get_input(self, word, batch_size, p=None):
         if word == '<unk>':
@@ -50,8 +51,8 @@ class Vocabulary:
         x = {'word':words, 'chars':chars}
 
         if p is not None:
-            prb = np.array([p], dtype='float32')[np.newaxis, :]
-            prb = np.tile(prb, (batch_size, 1))
+            prb = np.array([p], dtype='float32')[np.newaxis, :, :]
+            prb = np.tile(prb, (batch_size, 1, 1))
             x['prb'] = prb
 
         return x
