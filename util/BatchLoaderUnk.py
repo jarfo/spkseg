@@ -10,24 +10,24 @@ from collections import Counter, OrderedDict, namedtuple
 
 Tokens = namedtuple('Tokens', ['EOS', 'UNK', 'START', 'END', 'ZEROPAD'])
 ENCODING="iso-8859-15"
-VECTOR_SIZE=20
+
 
 def vocab_unpack(vocab):
     return vocab['idx2word'], vocab['word2idx'], vocab['idx2char'], vocab['char2idx']
 
 
-def process_line(line):
+def process_line(line, vector_size):
     lsplit = line.split()
-    assert(len(lsplit) == VECTOR_SIZE+5)
+    assert(len(lsplit) == vector_size+5)
     filename = lsplit[0]
     spk = lsplit[1]
     word = lsplit[4]
-    prob = map(float, lsplit[5:VECTOR_SIZE+5])
+    prob = map(float, lsplit[5:vector_size+5])
     return filename, word, spk, prob
 
 
 class BatchLoaderUnk:
-    def __init__(self, tokens, data_dir, batch_size, seq_length, max_word_l, n_words, n_chars, delay):
+    def __init__(self, tokens, data_dir, batch_size, seq_length, max_word_l, n_words, n_chars, delay, vector_size):
         self.n_words = n_words
         self.n_chars = n_chars
         train_file = path.join(data_dir, 'train.ctm')
@@ -43,7 +43,7 @@ class BatchLoaderUnk:
         # construct a tensor with all the data
         if not path.exists(vocab_file):
             print 'one-time setup: preprocessing input train/valid/test files in dir: ', data_dir
-            self.text_to_tensor(tokens, input_files, vocab_file, tensor_file, char_file, spk_file, prb_file, max_word_l)
+            self.text_to_tensor(tokens, input_files, vocab_file, tensor_file, char_file, spk_file, prb_file, max_word_l, vector_size)
 
         print('loading data files...')
         all_data = []
@@ -55,6 +55,7 @@ class BatchLoaderUnk:
             all_data_char.append(np.load("{}_{}.npy".format(char_file, split)))  # train, valid, test character indices
             all_spk.append(np.load("{}_{}.npy".format(spk_file, split)))  # train, valid, test spk indices
             all_prb.append(np.nan_to_num(np.load("{}_{}.npy".format(prb_file, split))))  # train, valid, test acoustic vectors
+            assert(all_prb[-1].shape[1] == vector_size)
         vocab_mapping = np.load(vocab_file)
         self.idx2word, self.word2idx, self.idx2char, self.char2idx = vocab_unpack(vocab_mapping)
         self.vocab_size = len(self.idx2word)
@@ -87,7 +88,7 @@ class BatchLoaderUnk:
                 rdata = data.reshape((batch_size, -1))
                 rydata = ydata.reshape((batch_size, -1))
                 rspk = spk.reshape((batch_size, -1))
-                rprb = prb.reshape((batch_size, -1, VECTOR_SIZE))
+                rprb = prb.reshape((batch_size, -1, vector_size))
                 rdata_char = data_char.reshape((batch_size, -1, self.max_word_l))
             else: # for test we repeat dimensions to batch size (easier but inefficient evaluation)
                 nseq = (data_len + (seq_length - 1)) // seq_length
@@ -101,7 +102,7 @@ class BatchLoaderUnk:
                 rspk.resize((1, nseq*seq_length))
                 rspk = np.tile(rspk, (batch_size, 1))
                 rprb = prb.copy()
-                rprb.resize((1, nseq*seq_length, VECTOR_SIZE))
+                rprb.resize((1, nseq*seq_length, vector_size))
                 rprb = np.tile(rprb, (batch_size, 1, 1))
                 rdata_char = data_char.copy()
                 rdata_char.resize((1, nseq*seq_length, rdata_char.shape[1]))
@@ -145,10 +146,10 @@ class BatchLoaderUnk:
             prb = self.all_batches[split_idx][4][idx]
             # expand dims
             ydata = np.expand_dims(ydata, axis=2)
-                    
+
             yield ({'word':word, 'chars':chars, 'spk':spk, 'prb':prb}, ydata)
 
-    def text_to_tensor(self, tokens, input_files, out_vocabfile, out_tensorfile, out_charfile, out_spkfile, out_prbfile, max_word_l):
+    def text_to_tensor(self, tokens, input_files, out_vocabfile, out_tensorfile, out_charfile, out_spkfile, out_prbfile, max_word_l, vector_size):
         print 'Processing text into tensors...'
         max_word_l_tmp = 0 # max word length of the corpus
         idx2word = [tokens.UNK] # unknown word token
@@ -183,11 +184,11 @@ class BatchLoaderUnk:
                     wordcount.update([word])
                 word = word.replace(tokens.UNK, '')
                 charcount.update(word)
-            
+
             f = codecs.open(input_files[split], 'r', encoding=ENCODING)
             counts = 0
             for line in f:
-                _, word, _, _ = process_line(line)
+                _, word, _, _ = process_line(line, vector_size)
                 update(word)
                 max_word_l_tmp = max(max_word_l_tmp, len(word) + 2) # add 2 for start/end chars
                 counts += 1
@@ -211,7 +212,7 @@ class BatchLoaderUnk:
         print 'Char counts:'
         for ii, cc in enumerate(charcount.most_common()):
             print ii, cc[0].encode(ENCODING), cc[1]
-                    
+
         print 'After first pass of data, max word length is: ', max_word_l_tmp
         print 'Token count: train %d, val %d, test %d' % (split_counts[0], split_counts[1], split_counts[2])
 
@@ -224,7 +225,7 @@ class BatchLoaderUnk:
             output_tensor = np.empty(split_counts[split], dtype='int32')
             output_chars = np.zeros((split_counts[split], max_word_l), dtype='int32')
             output_spk = np.ones(split_counts[split], dtype='int32')
-            output_prb = np.empty((split_counts[split], VECTOR_SIZE), dtype='float32')
+            output_prb = np.empty((split_counts[split], vector_size), dtype='float32')
 
             def append(word, word_num, first_word, prb):
                 if word == 'VOX':
@@ -254,7 +255,7 @@ class BatchLoaderUnk:
             prev_filename = ''
             prev_spk = ''
             for line in f:
-                filename, word, spk, prb = process_line(line)
+                filename, word, spk, prb = process_line(line, vector_size)
                 if (filename != prev_filename) or (spk != prev_spk):
                     first_word = 1;
                     prev_filename = filename

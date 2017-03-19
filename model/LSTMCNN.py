@@ -5,6 +5,7 @@ from keras.layers import Input, Embedding, TimeDistributed, Dense, Dropout, Resh
 from keras.optimizers import SGD, RMSprop
 from keras import backend as K
 
+
 class sSGD(SGD):
     def __init__(self, scale=1., **kwargs):
         super(sSGD, self).__init__(**kwargs)
@@ -19,7 +20,8 @@ class sSGD(SGD):
         if hasattr(self, 'clipvalue') and self.clipvalue > 0:
             grads = [K.clip(g, -self.clipvalue, self.clipvalue) for g in grads]
         return grads
-    
+
+
 class sModel(Model):
     def fit_generator(self, generator, samples_per_epoch, nb_epoch, validation_generator, nb_val_samples, opt):
         val_losses = []
@@ -54,6 +56,7 @@ class sModel(Model):
         with open(name, 'wt') as f:
             f.write(json_string)
 
+
 def load_model(name):
     with open(name, 'rt') as f:
         json_string = f.read()
@@ -63,7 +66,6 @@ def load_model(name):
 
 
 def CNN(seq_length, length, input_size, feature_maps, kernels, x):
-    
     concat_input = []
     for feature_map, kernel in zip(feature_maps, kernels):
         reduced_l = length - kernel + 1
@@ -74,6 +76,7 @@ def CNN(seq_length, length, input_size, feature_maps, kernels, x):
     x = Merge(mode='concat')(concat_input)
     x = Reshape((seq_length, sum(feature_maps)))(x)
     return x
+
 
 def LSTMCNN(opt):
     # opt.seq_length = number of time steps (words) in each batch
@@ -116,24 +119,26 @@ def LSTMCNN(opt):
     for l in range(opt.highway_layers):
         x = TimeDistributed(Highway(activation='relu'))(x)
 
-    # spk = Input(batch_shape=(opt.batch_size, opt.seq_length), name='spk')
-    # inputs.append(spk)
-    # spk = Reshape((opt.seq_length, 1))(spk)
-    # x = Merge(mode='concat')([x, spk])
+    spk = Input(batch_shape=(opt.batch_size, opt.seq_length), name='spk')
+    inputs.append(spk)
+    spk = Reshape((opt.seq_length, 1))(spk)
+    x = Merge(mode='concat')([x, spk])
+
+#    if opt.use_prb and l == opt.num_layers-1:
+    if opt.use_prb:
+        prb = Input(batch_shape=(opt.batch_size, opt.seq_length, opt.vector_size), name='prb')
+        inputs.append(prb)
+        x = Merge(mode='concat')([x, prb])
+
 
     for l in range(opt.num_layers):
-        if opt.use_prb and l == opt.num_layers-1:
-            prb = Input(batch_shape=(opt.batch_size, opt.seq_length, opt.vector_size), name='prb')
-            inputs.append(prb)
-            x = Merge(mode='concat')([x, prb])
-
         x = LSTM(opt.rnn_size, activation='tanh', inner_activation='sigmoid', return_sequences=True, stateful=True)(x)
 
         if opt.dropout > 0:
             x = Dropout(opt.dropout)(x)
 
     output = TimeDistributed(Dense(1, activation='sigmoid'))(x)
-    
+
     model = sModel(input=inputs, output=output)
     print model.summary()
 

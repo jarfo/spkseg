@@ -4,15 +4,14 @@ import json
 import numpy as np
 import os
 import cPickle as pickle
-from util.BatchLoaderUnk import BatchLoaderUnk, Tokens, VECTOR_SIZE
+from util.BatchLoaderUnk import BatchLoaderUnk, Tokens
 from model.LSTMCNN import LSTMCNN, load_model
 from math import exp
 
 Train, Validation, Test = 0, 1, 2
 
 def main(opt):
-    assert(VECTOR_SIZE==opt.vector_size)
-    loader = BatchLoaderUnk(opt.tokens, opt.data_dir, opt.batch_size, opt.seq_length, opt.max_word_l, opt.n_words, opt.n_chars, opt.delay)
+    loader = BatchLoaderUnk(opt.tokens, opt.data_dir, opt.batch_size, opt.seq_length, opt.max_word_l, opt.n_words, opt.n_chars, opt.delay, opt.vector_size)
     opt.word_vocab_size = min(opt.n_words, len(loader.idx2word))
     opt.char_vocab_size = min(opt.n_chars, len(loader.idx2char))
     opt.max_word_l = loader.max_word_l
