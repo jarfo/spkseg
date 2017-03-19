@@ -27,7 +27,7 @@ class sModel(Model):
         val_losses = []
         lr = K.get_value(self.optimizer.lr)
         for epoch in range(nb_epoch):
-            super(sModel, self).fit_generator(generator, samples_per_epoch, 30, validation_data=validation_generator, nb_val_samples=nb_val_samples, verbose=1)
+            super(sModel, self).fit_generator(generator, samples_per_epoch, 1, validation_data=validation_generator, nb_val_samples=nb_val_samples, verbose=1)
             retv = self.evaluate_generator(validation_generator, nb_val_samples)
             val_loss = exp(retv[0])
             val_losses.append(val_loss)

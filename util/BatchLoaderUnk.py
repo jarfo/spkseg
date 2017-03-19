@@ -13,17 +13,20 @@ ENCODING="iso-8859-15"
 
 
 def vocab_unpack(vocab):
-    return vocab['idx2word'], vocab['word2idx'], vocab['idx2char'], vocab['char2idx']
+    return vocab['idx2word'], vocab['word2idx'][()], vocab['idx2char'], vocab['char2idx'][()]
 
 
-def process_line(line, vector_size):
+def process_line(line, vector_size=0):
     lsplit = line.split()
-    assert(len(lsplit) == vector_size+5)
     filename = lsplit[0]
     spk = lsplit[1]
     word = lsplit[4]
-    prob = map(float, lsplit[5:vector_size+5])
-    return filename, word, spk, prob
+    if vector_size == 0:
+        return filename, word, spk
+    else:    
+        assert(len(lsplit) == vector_size+5)
+        prob = map(float, lsplit[5:vector_size+5])
+        return filename, word, spk, prob
 
 
 class BatchLoaderUnk:
@@ -172,16 +175,9 @@ class BatchLoaderUnk:
         for	split in range(3): # split = 0 (train), 1 (val), or 2 (test)
 
             def update(word):
-                if word == 'VOX':
-                    word = tokens.UNK # replace VOX with a single character
-                if word.startswith('<'):
-                    word = tokens.EOS # replace <s> and </s> with a single character
-
-                if word[0] == tokens.UNK:
-                    if len(word) > 1: # unk token with character info available
-                        word = word[2:]
-                else:
-                    wordcount.update([word])
+                if word == '<unk>':
+                    word = tokens.UNK # replace <unk> with a single character
+                wordcount.update([word])
                 word = word.replace(tokens.UNK, '')
                 charcount.update(word)
 
@@ -228,17 +224,11 @@ class BatchLoaderUnk:
             output_prb = np.empty((split_counts[split], vector_size), dtype='float32')
 
             def append(word, word_num, first_word, prb):
-                if word == 'VOX':
-                    word = tokens.UNK # replace VOX with a single character
-                if word.startswith('<'):
-                    word = tokens.EOS # replace <s> and </s> with a single character
+                if word == '<unk>':
+                    word = tokens.UNK # replace <unk> with a single character
 
+                output_tensor[word_num] = word2idx[word] if word in word2idx else word2idx[tokens.UNK]
                 chars = [char2idx[tokens.START]] # start-of-word symbol
-                if word[0] == tokens.UNK and len(word) > 1: # unk token with character info available
-                    word = word[2:]
-                    output_tensor[word_num] = word2idx[tokens.UNK]
-                else:
-                    output_tensor[word_num] = word2idx[word] if word in word2idx else word2idx[tokens.UNK]
                 chars += [char2idx[char] for char in word if char in char2idx]
                 chars.append(char2idx[tokens.END]) # end-of-word symbol
                 if len(chars) >= max_word_l:

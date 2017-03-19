@@ -74,7 +74,7 @@ if __name__=="__main__":
     # bookkeeping
     parser.add_argument('--seed', type=int, default=3435, help='manual random number generator seed')
     parser.add_argument('--print_every', type=int, default=500, help='how many steps/minibatches between printing out the loss')
-    parser.add_argument('--save_every', type=int, default=5, help='save every n epochs')
+    parser.add_argument('--save_every', type=int, default=1, help='save every n epochs')
     parser.add_argument('--checkpoint_dir', type=str, default='cv', help='output directory where checkpoints get written')
     parser.add_argument('--savefile', type=str, default='char-prb', help='filename to autosave the checkpoint to. Will be inside checkpoint_dir/')
     parser.add_argument('--EOS', type=str, default='+', help='<EOS> symbol. should be a single unused character (like +) for PTB and blank for others')
