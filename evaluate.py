@@ -201,8 +201,6 @@ def main(name, vocabulary, init, itext, otext, calc, k):
         _, word, _, prb = process_line(line, ev.opt.vector_size)
         ev.gen_sample(word, prb)
         lines.append(line)
-        if len(lines) > 1000:
-            break;
         
     state_sum, nl = save_spkseg(ev, lines, calc, state_sum, nl, file=fout)
 
