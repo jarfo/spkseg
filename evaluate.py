@@ -127,31 +127,13 @@ class Evaluator:
             self.hyp_prob = np.append(self.hyp_prob[batch_indices], spk_prob[ranks,np.newaxis], axis=1)
             self.hyp_score = cand_score[ranks]
 
-    def get_prob(self, words, prev_spk):
-        self.model.reindex_states(np.array([prev_spk, prev_spk], dtype=np.intp))
-        assert(self.opt.batch_size == 2)
-        self.clear(False)
-        score = []
-        for word in words:
-            x = self.reader.get_input(word, self.opt.batch_size)
-
-            # previous hyp spk id
-            ncol = self.hyp_samples.shape[1]
-            if ncol > 0:
-                spk = self.hyp_samples[:, -1:].astype('float32')
-            else:
-                spk = np.ones((self.opt.batch_size,1), dtype='float32')*prev_spk
-            x['spk'] = spk
-
-            # spk prediction
-            y = self.model.predict(x, batch_size=self.opt.batch_size)[:, 0, 0]
-            y[0] = 1-y[0]
-            spk_indices = np.array([0,1], dtype='int32')
-
-            self.hyp_samples = np.append(self.hyp_samples, spk_indices[:, np.newaxis], axis=1)
-            self.hyp_prob = np.append(self.hyp_prob, y[:, np.newaxis], axis=1)
-            score.append(np.log(y[0]) - np.log(y[1]))
-        return np.median(score)
+    def get_prob(self, word, prb):
+        assert(self.opt.batch_size == 1)
+        x = self.reader.get_input(word, self.opt.batch_size, prb)
+        y = self.model.predict(x, batch_size = self.opt.batch_size)[0,0,0]
+        self.hyp_samples = np.append(self.hyp_samples, [y>0.5], axis=1)
+        self.hyp_prob = np.append(self.hyp_prob, [y], axis=1)
+        self.hyp_score = [self.hyp_score - np.log(np.maximum(y, 1-y))]
 
 
 def save_spkseg(ev, lines, calc, state_sum, nl, file):
@@ -185,7 +167,7 @@ def save_spkseg(ev, lines, calc, state_sum, nl, file):
 
 
 def main(name, vocabulary, init, itext, otext, calc, k):
-    
+
     ev = Evaluator(name, vocabulary, None if calc else init, k)
 
     fin = codecs.open(itext, 'r', ENCODING)
@@ -200,7 +182,10 @@ def main(name, vocabulary, init, itext, otext, calc, k):
         if line == "" or line.startswith(';;'):
             continue
         _, word, _, prb = process_line(line, ev.opt.vector_size)
-        ev.gen_sample(word, prb)
+        if ev.opt.use_spk:
+            ev.gen_sample(word, prb)
+        else:
+            ev.get_prob(word, prb)
         lines.append(line)
         
     state_sum, nl = save_spkseg(ev, lines, calc, state_sum, nl, file=fout)
