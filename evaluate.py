@@ -62,7 +62,7 @@ class Evaluator:
     def __init__(self, name, vocabulary, init, k):
         self.opt = pickle.load(open('{}.pkl'.format(name), "rb"))
         self.opt.seq_length = 1
-        self.logk = 1
+        self.logk = 0
         while (1 << self.logk) < k:
             self.logk += 1
         self.opt.batch_size = 1 << self.logk
@@ -131,9 +131,9 @@ class Evaluator:
         assert(self.opt.batch_size == 1)
         x = self.reader.get_input(word, self.opt.batch_size, prb)
         y = self.model.predict(x, batch_size = self.opt.batch_size)[0,0,0]
-        self.hyp_samples = np.append(self.hyp_samples, [y>0.5], axis=1)
-        self.hyp_prob = np.append(self.hyp_prob, [y], axis=1)
-        self.hyp_score = [self.hyp_score - np.log(np.maximum(y, 1-y))]
+        self.hyp_samples = np.append(self.hyp_samples, [[y>0.5]], axis=1)
+        self.hyp_prob = np.append(self.hyp_prob, [[y]], axis=1)
+        self.hyp_score += -np.log(np.maximum([y], [1-y]))
 
 
 def save_spkseg(ev, lines, calc, state_sum, nl, file):
