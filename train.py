@@ -87,7 +87,7 @@ if __name__=="__main__":
 
     assert params.use_words == 1 or params.use_words == 0, '-use_words has to be 0 or 1'
     assert params.use_chars == 1 or params.use_chars == 0, '-use_chars has to be 0 or 1'
-    assert (params.use_chars + params.use_words) > 0, 'has to use at least one of words or chars'
+    # assert (params.use_chars + params.use_words) > 0, 'has to use at least one of words or chars'
 
     # global constants for certain tokens
     params.tokens = Tokens(

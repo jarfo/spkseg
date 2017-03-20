@@ -95,42 +95,48 @@ def LSTMCNN(opt):
     # opt.highway_layers = number of highway layers to use, if any
     # opt.batch_size = number of sequences in each batch
 
+    inputs = []
+    x = None
+
     if opt.use_words:
         word = Input(batch_shape=(opt.batch_size, opt.seq_length), dtype='int32', name='word')
+        inputs.append(word)
         word_vecs = Embedding(opt.word_vocab_size, opt.word_vec_size, input_length=opt.seq_length)(word)
+        x = word_vecs
 
     if opt.use_chars:
         chars = Input(batch_shape=(opt.batch_size, opt.seq_length, opt.max_word_l), dtype='int32', name='chars')
+        inputs.append(chars)
         chars_embedding = TimeDistributed(Embedding(opt.char_vocab_size, opt.char_vec_size, name='chars_embedding'))(chars)
         cnn = CNN(opt.seq_length, opt.max_word_l, opt.char_vec_size, opt.feature_maps, opt.kernels, chars_embedding)
-        if opt.use_words:
-            x = Merge(mode='concat')([cnn, word_vecs])
-            inputs = [chars, word]
+        if x is not None:
+            x = Merge(mode='concat')([x, cnn])
         else:
             x = cnn
-            inputs = [chars]
-    else:
-        x = word_vecs
-        inputs = [word]
 
-    if opt.batch_norm:
-        x = BatchNormalization()(x)
+    if x is not None:
+        if opt.batch_norm:
+            x = BatchNormalization()(x)
 
-    for l in range(opt.highway_layers):
-        x = TimeDistributed(Highway(activation='relu'))(x)
+        for l in range(opt.highway_layers):
+            x = TimeDistributed(Highway(activation='relu'))(x)
 
     if opt.use_spk:
         spk = Input(batch_shape=(opt.batch_size, opt.seq_length), name='spk')
         inputs.append(spk)
         spk = Reshape((opt.seq_length, 1))(spk)
-        x = Merge(mode='concat')([x, spk])
+        if x is not None:
+            x = Merge(mode='concat')([x, spk])
+        else:
+            x = spk
 
-#    if opt.use_prb and l == opt.num_layers-1:
     if opt.use_prb:
         prb = Input(batch_shape=(opt.batch_size, opt.seq_length, opt.vector_size), name='prb')
         inputs.append(prb)
-        x = Merge(mode='concat')([x, prb])
-
+        if x is not None:
+            x = Merge(mode='concat')([x, prb])
+        else:
+            x = prb
 
     for l in range(opt.num_layers):
         x = LSTM(opt.rnn_size, activation='tanh', inner_activation='sigmoid', return_sequences=True, stateful=True)(x)
