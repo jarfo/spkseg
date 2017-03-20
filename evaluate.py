@@ -86,7 +86,7 @@ class Evaluator:
             self.model.reset_states()
             if self.state_mean != None:
                 self.model.set_state_updates_value(self.state_mean)
-        
+
     @property
     def delay(self):
         return self.opt.delay
@@ -153,7 +153,7 @@ def save_spkseg(ev, lines, calc, state_sum, nl, file):
         if i>0 and i <= len(yp):
             ls = prev_line.split()
             l = ' '.join(ls[0:5])
-            print(l, first_word, yp[i-1], file=file)
+            print(l, first_word, yp[i-1], pp[i-1], file=file)
         prev_line = line
 
     if calc:
