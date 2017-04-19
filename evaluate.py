@@ -85,7 +85,7 @@ class Evaluator:
         if reset:
             self.model.reset_states()
             if self.state_mean != None:
-                self.model.set_state_updates_value(self.state_mean)
+                self.model.set_states_value(self.state_mean)
 
     @property
     def delay(self):

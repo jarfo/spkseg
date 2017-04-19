@@ -1,4 +1,3 @@
-
 import argparse
 import json
 import numpy as np
@@ -28,8 +27,8 @@ def main(opt):
             os.makedirs(opt.checkpoint_dir)
         pickle.dump(opt, open('{}/{}.pkl'.format(opt.checkpoint_dir, opt.savefile), "wb"))
         model.save('{}/{}.json'.format(opt.checkpoint_dir, opt.savefile))
-        model.fit_generator(loader.next_batch(Train), loader.split_sizes[Train]*loader.batch_size, opt.max_epochs,
-                            loader.next_batch(Validation), loader.split_sizes[Validation]*loader.batch_size, opt)
+        model.fit_generator(loader.next_batch(Train), loader.split_sizes[Train], opt.max_epochs,
+                            loader.next_batch(Validation), loader.split_sizes[Validation], opt)
         model.save_weights('{}/{}.h5'.format(opt.checkpoint_dir, opt.savefile), overwrite=True)
     else:
         model = load_model('{}/{}.json'.format(opt.checkpoint_dir, opt.savefile))
@@ -37,7 +36,7 @@ def main(opt):
         print model.summary()
 
     # evaluate on full test set.
-    test_perp = model.evaluate_generator(loader.next_batch(Test), loader.split_sizes[Test]*loader.batch_size)
+    test_perp = model.evaluate_generator(loader.next_batch(Test), loader.split_sizes[Test])
     print 'Perplexity on test set: ', exp(test_perp[0]), 'Accuracy: ', test_perp[1]
 
 if __name__=="__main__":
@@ -67,7 +66,7 @@ if __name__=="__main__":
     parser.add_argument('--batch_norm', type=int, default=0, help='use batch normalization over input embeddings (1=yes)')
     parser.add_argument('--seq_length', type=int, default=35, help='number of timesteps to unroll for')
     parser.add_argument('--batch_size', type=int, default=20, help='number of sequences to train on in parallel')
-    parser.add_argument('--max_epochs', type=int, default=14, help='number of full passes through the training data')
+    parser.add_argument('--max_epochs', type=int, default=1, help='number of full passes through the training data')
     parser.add_argument('--max_grad_norm', type=float, default=5, help='normalize gradients at')
     parser.add_argument('--max_word_l', type=int, default=65, help='maximum word length')
     parser.add_argument('--n_words', type=int, default=30000, help='max number of words in model')
@@ -77,7 +76,7 @@ if __name__=="__main__":
     parser.add_argument('--print_every', type=int, default=500, help='how many steps/minibatches between printing out the loss')
     parser.add_argument('--save_every', type=int, default=1, help='save every n epochs')
     parser.add_argument('--checkpoint_dir', type=str, default='cv', help='output directory where checkpoints get written')
-    parser.add_argument('--savefile', type=str, default='char-prb', help='filename to autosave the checkpoint to. Will be inside checkpoint_dir/')
+    parser.add_argument('--savefile', type=str, default='char', help='filename to autosave the checkpoint to. Will be inside checkpoint_dir/')
     parser.add_argument('--EOS', type=str, default='+', help='<EOS> symbol. should be a single unused character (like +) for PTB and blank for others')
     parser.add_argument('--skip_train', default=False, help='skip training', action='store_true')
 
