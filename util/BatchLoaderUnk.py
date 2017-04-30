@@ -22,7 +22,7 @@ def process_line(line, vector_size=0):
     spk = lsplit[1]
     word = lsplit[4]
     if vector_size == 0:
-        return filename, word, spk
+        return filename, word, spk, None
     else:    
         assert(len(lsplit) == vector_size+5)
         prob = map(float, lsplit[5:vector_size+5])

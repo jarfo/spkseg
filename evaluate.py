@@ -143,7 +143,7 @@ def save_spkseg(ev, lines, calc, state_sum, nl, file):
     prev_spk = ''
     prev_line = ''
     for i, line in enumerate(lines):
-        filename, _, spk = process_line(line)
+        filename, _, spk, _ = process_line(line)
         if (filename != prev_filename) or (spk != prev_spk):
             first_word = 1;
             prev_filename = filename
